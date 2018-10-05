@@ -16,189 +16,40 @@
  * All the best 
  */
 
-
-#include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <readline/readline.h>
 #include <readline/history.h>
 #include "parse.h"
-
-#include <stdbool.h>
-#include <string.h>
 #include <syscall.h>
+#include <sys/wait.h>
+#include <sys/types.h>
 
-
+#define PATH_MAX 50
 #define BUFFER_SIZE 25
 #define READ_END 0
 #define WRITE_END 1
+#define STDIN_FILENO 0   /* Standard input. */
+#define STDOUT_FILENO 1  /* Standard output. */
+#define STDERR_FILENO 2  /* Standard error output. */
+
 /*
  * Function declarations
  */
 
+int ExecuteCommand(Command, int);
+void PrintCurrentPath();
 void PrintCommand(int, Command *);
 void PrintPgm(Pgm *);
 void stripwhite(char *);
-char currentDirectory[50];
+void SendSignal(int);
+void ChildExit();
 
-int PATH_MAX = 50;
-int USER_MAX = 50;
 /* When non-zero, this global means the user is done using this program. */
 int done = 0;
-
-int runCommand(Command cmd) {
-  
-  int status; // Q: What to do with this?
-  //Create Pipe
-  int fd[2];
-  if(pipe(fd) == -1) {
-    fprintf(stderr, "Pipe failed");
-    return 1;
-  }
-
-  //Create new Process
-  pid_t pid = fork();
-  if(pid < 0) {
-    fprintf(stderr, "Fork failed");
-    return -1;
-  }
-
-  if(pid == 0) {
-    //Child process
-    printf("Child process running");
-    if(!cmd.pgm && cmd.rstdin) {
-
-      //Has input
-      int *pipein;
-      close(READ_END);
-      pipein = open(cmd.rstdin, "r");
-      dup2(fileno(pipein), fd); //Change 
-      close(pipein);
-          
-    } else {
-      close(fd[READ_END]);
-      write(fd[WRITE_END]);
-    }
-
-    exit(status); // Q: What is status here?
-  } else {
-    //Parent process
-
-    printf("Parent Process running");
-    close(fd[WRITE_END]);
-    write(fd[WRITE_END]);
-    wait(NULL);
-  }
-
-  printf("returning");
-  return 0;
-}
-
-/*
-int createProcessRun(Command cmd, int parentfd) {
-	Pgm *pgm = cmd.pgm;
-	char **pgmlist = pgm->pgmlist;
-	cmd.pgm = pgm->next;
-
-//  char writeMsg[BUFFER_SIZE];// = fopen(cmd.rstdout, "w");
-//  char readMsg[BUFFER_SIZE];// = fopen(cmd.rstdin, "r");
-//  FILE * writemsg;
-// writemsg = fopen(cmd.rstdout, "w");
-//writemsg = fopen(cmd.rstdout, )
-
-  int status;
-
-  pid_t pid = fork();
-
-
-  if(pid < 0) {
-      fprintf(stderr, "Fork failed");
-      return -1;
-  }
-
-  if(pid != 0) {
-		//Parent Code
-    waitpid(0, &status, 0);
-    
-  } else {
-    int fd[2];
-		//Child Code
-
-    if(cmd.pgm) {
-      //We have more commands 
-      
-      if(pipe(fd) == -1) {
-        fprintf(stderr, "Pipe failed");
-          return 1;
-        }
-
-      createProcessRun(cmd, fd[1]);
-      close(fd[1]);
-
-      dup2(fd[0], 0);
-      close(fd[0]);
-    } 
-
-    else if(cmd.rstdin) {
-      int *pipein;
-      pipein = open(cmd.rstdin, "r");
-
-      dup2(fileno(pipein), parentfd);
-      close(pipein);
-    } else if (parentfd != -1) {
-      dup2(parentfd, 1); 
-      close(parentfd);
-    }
-
-    printf("prepare running command \n");
-    //execve(pgmlist, *pgmlist);
-    
-    if(execvp(*pgmlist, pgmlist) == -1) {
-      perror("failed running command");
-     // exit(status);
-    } else {
-      printf("command executed\n");
-    }
-  
-     printf("exit\n");
-     exit(status);
-    
-  }
-  printf("return\n");
-  return 0;
-}
-
-*/
-
-int printUser() {
-  char *user;
-  user = getlogin();
-  if(user != NULL) {
-    printf("%s:", user);
-  } else {
-    perror("getlogin() error");
-    return 1;
-  }
-  return 0;
-}
-
-/*
- * Name: printCurrentWorkingDirectory
- *
- * Description: Display the working directory in the terminal.
- *
- */
-int printCurrentWorkingDirectory() {
-	char cwd[PATH_MAX];
-	if(getcwd(cwd, sizeof(cwd)) != NULL) {
-		printf("%s", cwd);
-
-	} else {
-		perror("getcwd() error");
-		return 1;
-	}
-	return 0;
-}
+int currentPid;
+int backPro = 0;
 
 /*
  * Name: main
@@ -211,10 +62,15 @@ int main(void)
   Command cmd;
   int n;
 
+  //redirect the signal received from keyboard to shell
+  signal(SIGINT, SendSignal);
+  signal(SIGTSTP, SendSignal);
+
   while (!done) {
-  	char *line;
-    printUser();
-    printCurrentWorkingDirectory();
+    
+    signal(SIGCHLD, ChildExit);
+    char *line;
+    PrintCurrentPath();
     line = readline("> ");
 
     if (!line) {
@@ -222,50 +78,63 @@ int main(void)
       done = 1;
     }
     else {
-      /*
+      /* 
        * Remove leading and trailing whitespace from the line
        * Then, if there is anything left, add it to the history list
        * and execute it.
        */
+      
       stripwhite(line);
 
       if(*line) {
         add_history(line);
         /* execute it */
         n = parse(line, &cmd);
+        // PrintCommand(n, &cmd);
 
-     		//Code here
-        if (!strcmp (*(cmd.pgm->pgmlist), "exit")) {
-          exit(0);
+        if (!strcmp(*(cmd.pgm->pgmlist), "cd")) {
+          char *dir = cmd.pgm->pgmlist[1];
+          if (dir) {
+            int cdir = chdir(dir);
+            if (cdir) {
+              printf("No such file or directory\n");
+            } 
+          } else {
+            chdir(getenv("HOME"));
+          }
         }
-
-        if (!strcmp (*(cmd.pgm->pgmlist), "cd")) {
-
-          if(cmd.pgm->pgmlist[1]) {
-           int dir = chdir(cmd.pgm->pgmlist[1]);
-           if(dir) {
-            printf("No such directory! \n");
-          } 
+        else if (!strcmp(*(cmd.pgm->pgmlist), "exit")) {
+          exit(0);
         } else {
-         chdir(getenv("HOME"));
-       }
-
-     } else {
-     			//Run Command here
-      //createProcessRun(cmd, -1);
-      runCommand(cmd);
-
+          ExecuteCommand(cmd, -1);
+        }
+      }
+    }
+    
+    if(line) {
+      free(line);
     }
   }
+  return 0;
 }
 
-if(line) {
-  free(line);
+/*
+ * Name: PrintCurrentPath
+ * 
+ * Description: Print the current path for the directory
+ *
+ */
+void
+PrintCurrentPath ()
+{
+  char cwd[PATH_MAX];
+  if (getcwd(cwd, sizeof(cwd)) != NULL) {
+    printf("%s", cwd);
+  }
+  else {
+    perror("getcwd() error");
+  }
 }
-}
-return 0;
-}
-
 
 /*
  * Name: PrintCommand
@@ -281,7 +150,6 @@ PrintCommand (int n, Command *cmd)
   printf("   stdout: %s\n", cmd->rstdout ? cmd->rstdout : "<none>" );
   printf("   bg    : %s\n", cmd->bakground ? "yes" : "no");
   PrintPgm(cmd->pgm);
-  //printf("n: " %d ,n );
 }
 
 /*
@@ -335,4 +203,132 @@ stripwhite (char *string)
   }
 
   string [++i] = '\0';
+}
+
+/*
+ * Name: ExecuteCommand
+ *
+ * Description: execute the command 
+ */
+int
+ExecuteCommand (Command cmd, int parent)
+{
+  Pgm *p = cmd.pgm;
+  cmd.pgm = p->next;
+  p->next = NULL;
+  FILE *input;
+  FILE *output;
+  pid_t pid;
+  int status;
+  int fd[2];
+
+  pid = fork();
+
+  if (pid<0) {
+    //error forking
+    perror("Fork Failed");
+  }
+  else if (pid == 0) {
+    //child process
+
+    if (cmd.bakground) {
+      //background process
+      setpgid(0, 0);
+    }
+
+    if (cmd.rstdin) {
+      //read input file
+      input = fopen(cmd.rstdin, "r");
+      dup2(fileno(input), READ_END);
+      fclose(input);
+    }
+
+    if (cmd.rstdout && parent == -1) {
+      //write output file
+      output = fopen(cmd.rstdout, "w");
+      dup2(fileno(output), WRITE_END);
+      fclose(output);
+    }
+
+    if (!cmd.pgm) {
+      //execute single command
+
+      if (parent != -1) {
+        //write to the pipe
+        dup2(parent, STDOUT_FILENO);
+        close(parent);
+      } 
+
+      if(execvp(*p->pgmlist, p->pgmlist) < 0) {
+        printf("Can't execute the command at last..\n");
+        exit(0);
+      } 
+
+    } else {
+      //pipe
+      //create the pipe
+      if (pipe(fd) == -1) {
+        fprintf(stderr, "Pipe failed");
+        return -1;
+      }
+
+      ExecuteCommand(cmd, fd[WRITE_END]);
+
+      //read from pipe
+      close(fd[WRITE_END]);
+      dup2(fd[READ_END], STDIN_FILENO);
+      close(fd[READ_END]);
+
+      if (parent != -1) {
+        //write to the pipe
+        dup2(parent, STDOUT_FILENO);
+        close(fd[WRITE_END]);
+      } 
+
+      if(execvp(*p->pgmlist, p->pgmlist) < 0) {
+        printf("Can't execute the command..\n");
+        exit(0);
+      } 
+    }
+
+
+   
+  }
+  else {
+    //parent process
+    //parent will wait for the child to complete
+    //not background process
+    if (!cmd.bakground) {
+      currentPid = pid;
+      waitpid(pid, &status, 0);
+      currentPid = 0;
+    } 
+    
+  }
+  return 0;
+}
+
+/*
+ * Name: SendSignal
+ *
+ * Descibtion: redirect the signal received from the keyboard
+ */
+void
+SendSignal(int signal)
+{
+  if(currentPid != 0) {
+    kill(currentPid, SIGINT);
+    currentPid = 0;
+  }
+}
+
+/*
+ * Name: proExit
+ *
+ * Descibtion: wait until child process terminate
+ */
+void
+ChildExit()
+{
+  waitpid(-1, 0, WNOHANG);
 }

@@ -8,8 +8,8 @@
 
 >> Fill in the names and email addresses of your group members.
 
-FirstName LastName <email@domain.example>
-FirstName LastName <email@domain.example>
+Lai Liwen <gusliwla@student.gu.se>
+Johan Segerlund <johanse@student.chalmers.se>
 
 ---- PRELIMINARIES ----
 
@@ -19,6 +19,7 @@ FirstName LastName <email@domain.example>
 >> Please cite any offline or online sources you consulted while
 >> preparing your submission, other than the Pintos documentation, course
 >> text, lecture notes, and course instructors.
+
 
 			   COMMAND SHELL
 			   =============
@@ -32,8 +33,15 @@ which parts.
 >> L1: How many hours did each team member spend on this assignment?
    Make sure that each member's total time is listed.
 
+   Liwen: 16h
+   Johan: 16h
+
 >> L2: What did each team member focus on for this assignment?  Keep
    descriptions to 25-30 words or less.
+
+   Liwen: I spend lots of time on pipe and background process.
+   Johan: We did seperate solutions so we focused a bit on everything both of us. But I agree 
+   with Liwen that pipes was a bit mind-boggling.
 
 
 			  SURVEY QUESTIONS
@@ -48,15 +56,36 @@ penalized.  We can't fix things until we know about them.  :-)
 >> In your opinion, was this assignment, or any of the parts of it, too
 >> easy or too hard?  Did it take too long or too little time?
 
+  Liwen: I spend lots of time on pipe. The normal command works, but for the error command.
+  The error handling is a little bit confused. I suppose the child process will print error
+  message and exit, however, it doesn't. This is a really hard point for me.
+
+  Johan: I think a lot of time was spend just to get my head around what we were supposed to do.
+  My first thought was that we were supposed to implement commands such as "ls" ourselves. I had to talk to my friend who did this previous year to understand this assignment.
+
 >> Did you find that working on a particular part of the assignment gave
 >> you greater insight into some aspect of OS design?
+
+  Liwen: Yes, this assignment helps me to have a deeper view about how process works. I am now
+  clearer about the pipe, background process, signal redirection...
+
+  Johan: I liked this assignment. Working with pipes, forks etc become much more clearer. 
 
 >> Were there any parts of the assignment that you felt were unnecessarily
 >> tedious or pointless?
 
+  Liwen: nope.
+  Johan: nope not really.
+
 >> Is there some particular fact or hint we should give students in
 >> future quarters to help them solve the problems?  Conversely, did you
 >> find any of our guidance to be misleading?
+
+  Liwen: probably a diagram of how process work through pipe will help students have a clearer idea 
+  about how to solve the problem.
+
+  Johan: I think there were a lot of information but again there was still information missing. I guess the structure could be better. Maybe split the lab 1 into different step so we don't have to read all the information at once. It should say somewhere that we don't have to invent the wheel and that OS itself can execute commands such as "ls".
+
 
 >> Do you have any suggestions for the instructor and/or TAs to more
 >> effectively assist students, either for future quarters or the remaining
