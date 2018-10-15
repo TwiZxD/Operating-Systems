@@ -14,6 +14,11 @@
 #define NORMAL 0
 #define HIGH 1
 
+int busDirection;
+struct semaphore *busCapacitySemaphoreEmpty; // = 3
+struct semaphore *busCapacitySemaphoreFull;  // 0 or use conditions
+
+
 /*
  *	initialize task with direction and priority
  *	call o
@@ -33,19 +38,17 @@ void receiverPriorityTask(void *);
 
 
 void oneTask(task_t task);/*Task requires to use the bus and executes methods below*/
-	void getSlot(task_t task); /* task tries to use slot on the bus */
-	void transferData(task_t task); /* task processes data on the bus either sending or receiving based on the direction*/
-	void leaveSlot(task_t task); /* task release the slot */
+void getSlot(task_t task); /* task tries to use slot on the bus */
+void transferData(task_t task); /* task processes data on the bus either sending or receiving based on the direction*/
+void leaveSlot(task_t task); /* task release the slot */
 
 
 
 /* initializes semaphores */ 
 void init_bus(void){ 
- 
+
     random_init((unsigned int)123456789); 
-    
-    msg("NOT IMPLEMENTED");
-    /* FIXME implement */
+   // sema_init(busCapacitySemaphore, BUS_CAPACITY);
 
 }
 
@@ -63,10 +66,32 @@ void init_bus(void){
 void batchScheduler(unsigned int num_tasks_send, unsigned int num_task_receive,
         unsigned int num_priority_send, unsigned int num_priority_receive)
 {
+    /* Psudo
+    foreach num_task_send {
+        int priority = NORMAL;
+        thread_create("NormalSender", priority, &senderTask(NULL), NULL);
+    }
 
-    //Create a thread for each task.
-    msg("NOT IMPLEMENTED");
-    /* FIXME implement */
+     foreach num_task_receive {
+        int priority = NORMAL;
+        thread_create("NormalReceiver", priority, &receiverTask(NULL), NULL);
+    }
+
+     foreach num_priority_send {
+        int priority = HIGH;
+        thread_create("HighSender", priority, &senderPriorityTask(NULL), NULL);
+    }
+
+     foreach num_priority_receive {
+        int priority = HIGH;
+        thread_create("HighReceiver", priority, &receiverPriorityTask(NULL), NULL);
+    }
+    */
+
+    /* 
+        Create a fair schedular
+    */
+   
 }
 
 /* Normal task,  sending data to the accelerator */
@@ -104,20 +129,34 @@ void oneTask(task_t task) {
 /* task tries to get slot on the bus subsystem */
 void getSlot(task_t task) 
 {
-    msg("NOT IMPLEMENTED");
-    /* FIXME implement */
+
+    /*
+        if(task.direction == busDirection) {
+            aquier semaphore
+        } else {    
+            blockThread
+        }
+        if(capacitySemaphores is free) {
+            
+        }
+    */
+
 }
 
 /* task processes data on the bus send/receive */
 void transferData(task_t task) 
 {
-    msg("NOT IMPLEMENTED");
-    /* FIXME implement */
+    /*
+        printf(taskdirection and taskPriority) ?
+    */
 }
 
 /* task releases the slot */
 void leaveSlot(task_t task) 
 {
-    msg("NOT IMPLEMENTED");
-    /* FIXME implement */
+    /*
+        freesemaphore
+        signal threads
+    */    
+
 }
