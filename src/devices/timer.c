@@ -29,6 +29,7 @@ static bool too_many_loops (unsigned loops);
 static void busy_wait (int64_t loops);
 static void real_time_sleep (int64_t num, int32_t denom);
 static void real_time_delay (int64_t num, int32_t denom);
+void tryToUnblockThread(struct thread *t, void *aux);
 
 /* Sets up the timer to interrupt TIMER_FREQ times per second,
    and registers the corresponding interrupt. */
@@ -86,15 +87,29 @@ timer_elapsed (int64_t then)
 
 /* Sleeps for approximately TICKS timer ticks.  Interrupts must
    be turned on. */
+
 void
 timer_sleep (int64_t ticks) 
 {
+
+  ASSERT (intr_get_level () == INTR_ON);
+
+  struct thread *t = thread_current();
+  t->wakeAtTime = timer_ticks() + ticks;
+  thread_block();
+}
+/* Old timer_sleep
+void
+timer_sleep (int64_t ticks) 
+{
+  
   int64_t start = timer_ticks ();
 
   ASSERT (intr_get_level () == INTR_ON);
   while (timer_elapsed (start) < ticks) 
     thread_yield ();
 }
+*/
 
 /* Sleeps for approximately MS milliseconds.  Interrupts must be
    turned on. */
@@ -170,8 +185,27 @@ timer_print_stats (void)
 static void
 timer_interrupt (struct intr_frame *args UNUSED)
 {
+  //TODO HERE call for
+  //thread_foreach(&thread_say_hello);
   ticks++;
-  thread_tick ();
+ // thread_foreach(&tryToUnblockThread,timer_elapsed(ticks));
+  thread_foreach(&tryToUnblockThread,NULL);
+ 
+  thread_tick();
+  
+}
+
+void 
+tryToUnblockThread(struct thread *t, void *timeRightNow) { //
+  //TODO unblock if blocked
+  if(t->wakeAtTime != -1) {
+    printf("wakeAtTime != -1");
+    if(timer_ticks() > t->wakeAtTime) {
+      thread_unblock(t);
+      t->wakeAtTime = -1; // -1: Threads can be block for other reasons and we only want to unblock if it has a timer wakeAtTime > 0
+    }
+  } 
+  //return 0;
 }
 
 /* Returns true if LOOPS iterations waits for more than one timer

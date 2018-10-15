@@ -71,6 +71,11 @@ static void schedule (void);
 void thread_schedule_tail (struct thread *prev);
 static tid_t allocate_tid (void);
 
+/*Added variables */
+int wakeMe = 0;
+
+
+
 /* Initializes the threading system by transforming the code
    that's currently running into a thread.  This can't work in
    general and it is possible in this case only because loader.S
@@ -335,7 +340,7 @@ thread_foreach (thread_action_func *func, void *aux)
        e = list_next (e))
     {
       struct thread *t = list_entry (e, struct thread, allelem);
-      func (t, aux);
+      func  (t, aux);
     }
 }
 
@@ -470,6 +475,7 @@ init_thread (struct thread *t, const char *name, int priority)
   t->priority = priority;
   t->magic = THREAD_MAGIC;
   list_push_back (&all_list, &t->allelem);
+  t->wakeAtTime = -1;
 }
 
 /* Allocates a SIZE-byte frame at the top of thread T's stack and
@@ -547,7 +553,8 @@ thread_schedule_tail (struct thread *prev)
 
 /* Schedules a new process.  At entry, interrupts must be off and
    the running process's state must have been changed from
-   running to some other state.  This function finds another
+   running to some other state.  This functio
+   n finds another
    thread to run and switches to it.
 
    It's not safe to call printf() until thread_schedule_tail()

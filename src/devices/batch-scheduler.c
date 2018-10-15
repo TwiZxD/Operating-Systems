@@ -63,6 +63,8 @@ void init_bus(void){
 void batchScheduler(unsigned int num_tasks_send, unsigned int num_task_receive,
         unsigned int num_priority_send, unsigned int num_priority_receive)
 {
+
+    //Create a thread for each task.
     msg("NOT IMPLEMENTED");
     /* FIXME implement */
 }
