@@ -92,11 +92,16 @@ void
 timer_sleep (int64_t ticks) 
 {
 
+  enum intr_level old_level;
+  old_level = intr_disable ();
+
   ASSERT (intr_get_level () == INTR_ON);
 
   struct thread *t = thread_current();
   t->wakeAtTime = timer_ticks() + ticks;
   thread_block();
+
+  intr_set_level (old_level);
 
 }
 /* Old timer_sleep
@@ -188,18 +193,19 @@ timer_interrupt (struct intr_frame *args UNUSED)
 {
 
   ticks++;
-  thread_foreach(&tryToUnblockThread, NULL);
+  thread_foreach(&tryToUnblockThread, &ticks);
   //thread_foreach()
   thread_tick();
   
 }
 
 void 
-tryToUnblockThread(struct thread *t, void *timeRightNow) { //
+tryToUnblockThread(struct thread *t, void *ticks) { //
 
   if(t->status == THREAD_BLOCKED) {
     if(t->wakeAtTime != -1) {
       printf("wakeAtTime != -1");
+      //if(elapsedTime())
       if(timer_ticks() > t->wakeAtTime) {
         thread_unblock(t);
         t->wakeAtTime = -1; // -1: Threads can be block for other reasons and we only want to unblock if it has a timer wakeAtTime > 0
