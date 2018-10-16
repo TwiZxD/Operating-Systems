@@ -14,6 +14,9 @@
 #define NORMAL 0
 #define HIGH 1
 
+//Added
+#define PRIORITY_WEIGHT 2
+
 int busDirection;
 struct semaphore *busCapacitySemaphoreEmpty; // = 3
 struct semaphore *busCapacitySemaphoreFull;  // 0 or use conditions
@@ -148,6 +151,7 @@ void transferData(task_t task)
 {
     /*
         printf(taskdirection and taskPriority) ?
+        wait? block?
     */
 }
 
@@ -156,7 +160,7 @@ void leaveSlot(task_t task)
 {
     /*
         freesemaphore
-        signal threads
+        signal threads or broadcast that there is a free slot.
     */    
 
 }
