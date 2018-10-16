@@ -17,7 +17,7 @@
 //Added
 
 
-int busDirection, threadsOnBus;
+int busDirection, threadsOnBus, prioSendersWaiting;
 struct lock lock;
 
 struct condition prioSender, sender, prioReceiver, receiver;
@@ -180,8 +180,10 @@ void transferData(task_t task)
 /* task releases the slot */
 void leaveSlot(task_t task) 
 {   
-
-
+    threadsOnBus--;
+    if(task.direction == SENDER) {
+        prioSendersWaiting == 0;
+    }
 
     /*
         threadsOnBus--
