@@ -88,19 +88,20 @@ void batchScheduler(unsigned int num_tasks_send, unsigned int num_task_receive,
 {
     //int priority = 0; //NORMAL
 
-    for(int i = 0; i < num_tasks_send; i++) {
+    int i;
+    for(i = 0; i < num_tasks_send; i++) {
             thread_create("Sender", 0, senderTask, 0);
     }
 
-    for(int i = 0; i < num_priority_send; i++) {
+    for(i = 0; i < num_priority_send; i++) {
         thread_create("PrioSender", 1, senderPriorityTask, 0);
     }
 
-    for(int i = 0; i <num_task_receive; i++) {
+    for(i = 0; i <num_task_receive; i++) {
         thread_create("Receiver", 1, receiverTask, 0);
     }
 
-    for(int i = 0; i < num_priority_receive; i++) {
+    for(i = 0; i < num_priority_receive; i++) {
         thread_create("PrioReceiver", 1, receiverPriorityTask, 0);
     }
 
