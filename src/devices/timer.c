@@ -94,9 +94,10 @@ timer_sleep (int64_t ticks)
   if(ticks > 0) {
     enum intr_level old_level;
   //  old_level = 
+    ASSERT (intr_get_level () == INTR_ON);
     old_level = intr_disable ();
 
-    ASSERT (intr_get_level () == INTR_ON);
+   
 
     struct thread *t = thread_current();
     t->wakeAtTime = timer_ticks() + ticks;
