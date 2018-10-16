@@ -17,7 +17,7 @@
 //Added
 
 
-int busDirection, threadsOnBus, prioSendersWaiting;
+int busDirection, threadsOnBus, prioSendersWaiting, sendersWaiting, prioReceiversWaiting, receiversWaiting;
 struct lock lock;
 
 struct condition prioSender, sender, prioReceiver, receiver;
@@ -88,6 +88,10 @@ void batchScheduler(unsigned int num_tasks_send, unsigned int num_task_receive,
 {
     //int priority = 0; //NORMAL
 
+    sendersWaiting = 0;
+    prioSendersWaiting = 0;
+    prioReceiversWaiting = 0;
+    receiversWaiting = 0;
     unsigned int i;
     for(i = 0; i < num_tasks_send; i++) {
             thread_create("Sender", 0, senderTask, 0);
@@ -150,6 +154,7 @@ void getSlot(task_t task)
         } else { 
             if(task.direction == SENDER) {
                 if(task.priority == HIGH) {
+                    prioSendersWaiting++;
                     cond_wait(&prioSender, &lock);
                 } else {
                     cond_wait(&sender, &lock);
@@ -172,9 +177,8 @@ void getSlot(task_t task)
 /* task processes data on the bus send/receive */
 void transferData(task_t task) 
 {
-    /*
-        sleep(); //wait
-    */
+  int64_t sleep_time = (int64_t)random_ulong();
+    timer_sleep(sleep_time%60);
 }
 
 /* task releases the slot */
@@ -182,37 +186,26 @@ void leaveSlot(task_t task)
 {   
     threadsOnBus--;
     if(task.direction == SENDER) {
-        prioSendersWaiting == 0;
+        if(prioSendersWaiting == 0) {
+            if(sendersWaiting == 0) {
+                busDirection == RECEIVER;
+            } else {
+                cond_signal(&sender, &lock);
+            }
+            
+        } else {
+            cond_signal(&prioSender, &lock);
+        }
+    } else {
+        //Receiver
+    }if(prioReceiversWaiting == 0) {
+        if(sendersWaiting == 0) {
+            busDirection == SENDER;
+        } else {
+            cond_signal(&receiver, &lock);
+        } 
+    } else {
+        cond_signal(&prioReceiver, &lock);
     }
 
-    /*
-        threadsOnBus--
-
-        if(this.Thread == SENDER) {
-            is(prioSenderWaiting.empty()) {
-                if(normalSenderWaiting.empty()) {
-                    //No more senders
-                    switchBusDirection();
-                } else {
-                    cond_signal(senders, NULL);;                    
-                }
-
-            } else {
-                 cond_signal(prioSenders, NULL);;  
-            }
-
-        } else { //Receiver
-            if(prioReceiverWaiting.empty() ) {
-                if(normalSenderWaiting.empty()) {
-                    //No more receivers
-                    switchBusDirection();
-                } else {
-                    cond_signal(receivers, NULL);; 
-                }
-            } else {
-                cond_signal(prioReceivers, NULL);; 
-            }
-        }
-
-    */
 }
