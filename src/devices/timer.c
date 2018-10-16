@@ -185,12 +185,11 @@ timer_print_stats (void)
 static void
 timer_interrupt (struct intr_frame *args UNUSED)
 {
-  //TODO HERE call for
-  //thread_foreach(&thread_say_hello);
+
   ticks++;
- // thread_foreach(&tryToUnblockThread,timer_elapsed(ticks));
+
   thread_foreach(&tryToUnblockThread,NULL);
- 
+  //thread_foreach()
   thread_tick();
   
 }
@@ -198,6 +197,7 @@ timer_interrupt (struct intr_frame *args UNUSED)
 void 
 tryToUnblockThread(struct thread *t, void *timeRightNow) { //
   //TODO unblock if blocked
+  
   if(t->wakeAtTime != -1) {
     printf("wakeAtTime != -1");
     if(timer_ticks() > t->wakeAtTime) {
@@ -205,7 +205,6 @@ tryToUnblockThread(struct thread *t, void *timeRightNow) { //
       t->wakeAtTime = -1; // -1: Threads can be block for other reasons and we only want to unblock if it has a timer wakeAtTime > 0
     }
   } 
-  //return 0;
 }
 
 /* Returns true if LOOPS iterations waits for more than one timer

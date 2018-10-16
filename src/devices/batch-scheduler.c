@@ -15,12 +15,17 @@
 #define HIGH 1
 
 //Added
-#define PRIORITY_WEIGHT 2
 
-int busDirection;
-struct semaphore *busCapacitySemaphoreEmpty; // = 3
-struct semaphore *busCapacitySemaphoreFull;  // 0 or use conditions
 
+int busDirection, threadsOnBus;
+struct lock *lock;
+
+struct condition *prioSender, *sender, *prioReceiver, *receiver;
+
+//struct semaphore threadsOnBus;
+
+//queueSenders
+//queueReceivers
 
 /*
  *	initialize task with direction and priority
@@ -50,7 +55,19 @@ void leaveSlot(task_t task); /* task release the slot */
 /* initializes semaphores */ 
 void init_bus(void){ 
 
+    
     random_init((unsigned int)123456789); 
+
+    //sema_init(&threadsOnBus, 0);
+    threadsOnBus = 0;
+
+
+    lock_init(&lock);
+
+   cond_init(&prioSender);
+    cond_init(&sender);
+    cond_init(&prioReceiver);
+    cond_init(&receiver);
    // sema_init(busCapacitySemaphore, BUS_CAPACITY);
 
 }
@@ -69,33 +86,26 @@ void init_bus(void){
 void batchScheduler(unsigned int num_tasks_send, unsigned int num_task_receive,
         unsigned int num_priority_send, unsigned int num_priority_receive)
 {
-    /* Psudo
-    foreach num_task_send {
-        int priority = NORMAL;
-        thread_create("NormalSender", priority, &senderTask(NULL), NULL);
+    //int priority = 0; //NORMAL
+
+    for(int i = 0; i < num_tasks_send; i++) {
+            thread_create("Sender", 0, senderTask, 0);
     }
 
-     foreach num_task_receive {
-        int priority = NORMAL;
-        thread_create("NormalReceiver", priority, &receiverTask(NULL), NULL);
+    for(int i = 0; i < num_priority_send; i++) {
+        thread_create("PrioSender", 1, senderPriorityTask, 0);
     }
 
-     foreach num_priority_send {
-        int priority = HIGH;
-        thread_create("HighSender", priority, &senderPriorityTask(NULL), NULL);
+    for(int i = 0; i <num_task_receive; i++) {
+        thread_create("Receiver", 1, receiverTask, 0);
     }
 
-     foreach num_priority_receive {
-        int priority = HIGH;
-        thread_create("HighReceiver", priority, &receiverPriorityTask(NULL), NULL);
+    for(int i = 0; i < num_priority_receive; i++) {
+        thread_create("PrioReceiver", 1, receiverPriorityTask, 0);
     }
-    */
 
-    /* 
-        Create a fair schedular
-    */
-   
 }
+   
 
 /* Normal task,  sending data to the accelerator */
 void senderTask(void *aux UNUSED){
@@ -132,17 +142,29 @@ void oneTask(task_t task) {
 /* task tries to get slot on the bus subsystem */
 void getSlot(task_t task) 
 {
+    while(1) {
+        if(threadsOnBus < 3 && busDirection == task.direction) {
+            threadsOnBus++;
+            return;
+        } else { 
+            if(task.direction == SENDER) {
+                if(task.priority == HIGH) {
+                    cond_wait(&prioSender, &lock);
+                } else {
+                    cond_wait(&sender, &lock);
+                }
+            } else {
+                //Receiver
+                if(task.priority == HIGH) {
+                    cond_wait(&prioReceiver, &lock);
+                } else {
+                    cond_wait(&receiver, &lock);
+                }
+            }
+        }
 
-    /*
-        if(task.direction == busDirection) {
-            aquier semaphore
-        } else {    
-            blockThread
-        }
-        if(capacitySemaphores is free) {
-            
-        }
-    */
+    }
+         
 
 }
 
@@ -150,17 +172,44 @@ void getSlot(task_t task)
 void transferData(task_t task) 
 {
     /*
-        printf(taskdirection and taskPriority) ?
-        wait? block?
+        sleep(); //wait
     */
 }
 
 /* task releases the slot */
 void leaveSlot(task_t task) 
-{
-    /*
-        freesemaphore
-        signal threads or broadcast that there is a free slot.
-    */    
+{   
 
+
+
+    /*
+        threadsOnBus--
+
+        if(this.Thread == SENDER) {
+            is(prioSenderWaiting.empty()) {
+                if(normalSenderWaiting.empty()) {
+                    //No more senders
+                    switchBusDirection();
+                } else {
+                    cond_signal(senders, NULL);;                    
+                }
+
+            } else {
+                 cond_signal(prioSenders, NULL);;  
+            }
+
+        } else { //Receiver
+            if(prioReceiverWaiting.empty() ) {
+                if(normalSenderWaiting.empty()) {
+                    //No more receivers
+                    switchBusDirection();
+                } else {
+                    cond_signal(receivers, NULL);; 
+                }
+            } else {
+                cond_signal(prioReceivers, NULL);; 
+            }
+        }
+
+    */
 }
