@@ -18,9 +18,9 @@
 
 
 int busDirection, threadsOnBus;
-struct lock *lock;
+struct lock lock;
 
-struct condition *prioSender, *sender, *prioReceiver, *receiver;
+struct condition prioSender, sender, prioReceiver, receiver;
 
 //struct semaphore threadsOnBus;
 
@@ -64,7 +64,7 @@ void init_bus(void){
 
     lock_init(&lock);
 
-   cond_init(&prioSender);
+    cond_init(&prioSender);
     cond_init(&sender);
     cond_init(&prioReceiver);
     cond_init(&receiver);
