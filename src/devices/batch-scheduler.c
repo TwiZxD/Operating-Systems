@@ -146,7 +146,7 @@ void oneTask(task_t task) {
 
 /* task tries to get slot on the bus subsystem */
 void getSlot(task_t task) 
-{
+{   
     while(1) {
         if(threadsOnBus < 3 && busDirection == task.direction) {
             threadsOnBus++;
@@ -171,7 +171,6 @@ void getSlot(task_t task)
 
     }
          
-
 }
 
 /* task processes data on the bus send/receive */
