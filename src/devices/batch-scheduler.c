@@ -146,33 +146,37 @@ void oneTask(task_t task) {
 void getSlot(task_t task) 
 {   
     while(1) {
-        sema_down(&mutex);
+        //sema_down(&mutex);
         if(threadsOnBus < 3 && busDirection == task.direction) {
             
             threadsOnBus++;
-            sema_up(&mutex);
+          //  sema_up(&mutex);
             return;
         } else { 
             if(task.direction == SENDER) {
                 if(task.priority == HIGH) {
                     prioSendersWaiting++;
-                    sema_up(&mutex);
+                 //   sema_up(&mutex);
                     cond_wait(&prioSender, &lock);
+                    prioSendersWaiting--;
                 } else {
                     sendersWaiting++;
-                    sema_up(&mutex);
+                //    sema_up(&mutex);
                     cond_wait(&sender, &lock);
+                    sendersWaiting--;
                 }
             } else {
                 //Receiver
                 if(task.priority == HIGH) {
                     prioReceiversWaiting++;
-                    sema_up(&mutex);
+                 //   sema_up(&mutex);
                     cond_wait(&prioReceiver, &lock);
+                    prioReceiversWaiting--;
                 } else {
                     receiversWaiting++;
-                    sema_up(&mutex);
+                //    sema_up(&mutex);
                     cond_wait(&receiver, &lock);
+                    receiversWaiting--;
                 }
             }
         }
@@ -191,7 +195,7 @@ void transferData(task_t task)
 /* task releases the slot */
 void leaveSlot(task_t task) 
 {   
-    
+
     threadsOnBus--;
     if(task.direction == SENDER) {
         if(prioSendersWaiting == 0) {
