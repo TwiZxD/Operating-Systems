@@ -89,25 +89,20 @@ timer_elapsed (int64_t then)
    be turned on. */
 
 void
-timer_sleep (int64_t ticks) 
+timer_sleep (int64_t sleep_ticks) 
 {
   if(ticks > 0) {
     enum intr_level old_level;
-  //  old_level = 
     ASSERT (intr_get_level () == INTR_ON);
     old_level = intr_disable ();
 
-   
-
     struct thread *t = thread_current();
-    t->wakeAtTime = timer_ticks() + ticks;
+    t->wakeAtTime = timer_ticks() + sleep_ticks;
     thread_block();
 
     //intr_enable();
     intr_set_level(old_level);
   }
-  
-
 }
 /* Old timer_sleep
 void
