@@ -18,11 +18,11 @@
 
 
 int busDirection, threadsOnBus, prioSendersWaiting, sendersWaiting, prioReceiversWaiting, receiversWaiting;
+
 struct lock lock;
 
 struct condition prioSender, sender, prioReceiver, receiver;
-
-//struct semaphore threadsOnBus;
+struct semaphore mutex;
 
 //queueSenders
 //queueReceivers
@@ -54,13 +54,10 @@ void leaveSlot(task_t task); /* task release the slot */
 
 /* initializes semaphores */ 
 void init_bus(void){ 
-
-    
     random_init((unsigned int)123456789); 
 
     //sema_init(&threadsOnBus, 0);
     threadsOnBus = 0;
-
 
     lock_init(&lock);
 
@@ -68,6 +65,7 @@ void init_bus(void){
     cond_init(&sender);
     cond_init(&prioReceiver);
     cond_init(&receiver);
+    sema_init(&mutex, 1);
    // sema_init(busCapacitySemaphore, BUS_CAPACITY);
 
 }
@@ -148,22 +146,32 @@ void oneTask(task_t task) {
 void getSlot(task_t task) 
 {   
     while(1) {
+        sema_down(&mutex);
         if(threadsOnBus < 3 && busDirection == task.direction) {
+            
             threadsOnBus++;
+            sema_up(&mutex);
             return;
         } else { 
             if(task.direction == SENDER) {
                 if(task.priority == HIGH) {
                     prioSendersWaiting++;
+                    sema_up(&mutex);
                     cond_wait(&prioSender, &lock);
                 } else {
+                    sendersWaiting++;
+                    sema_up(&mutex);
                     cond_wait(&sender, &lock);
                 }
             } else {
                 //Receiver
                 if(task.priority == HIGH) {
+                    prioReceiversWaiting++;
+                    sema_up(&mutex);
                     cond_wait(&prioReceiver, &lock);
                 } else {
+                    receiversWaiting++;
+                    sema_up(&mutex);
                     cond_wait(&receiver, &lock);
                 }
             }
@@ -183,6 +191,7 @@ void transferData(task_t task)
 /* task releases the slot */
 void leaveSlot(task_t task) 
 {   
+    
     threadsOnBus--;
     if(task.direction == SENDER) {
         if(prioSendersWaiting == 0) {
