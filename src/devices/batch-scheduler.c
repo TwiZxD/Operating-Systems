@@ -147,25 +147,25 @@ void oneTask(task_t task) {
 /* task tries to get slot on the bus subsystem */
 void getSlot(task_t task) 
 {   
-    
-    sema_down(&threadsOnBus);
+    sema_down(&mutex);
+
     if(threadsOnBus < 3 && busDirection == task.direction) {
     
         threadsOnBus++;
         sema_down(&semaAllowedThreadsOnBus);
       //  sema_up(&mutex);
-
+        sema_up(&mutex);
         return;
     } else { 
         if(task.direction == SENDER) {
             if(task.priority == HIGH) {
                 prioSendersWaiting++;
-             //   sema_up(&mutex);
+                sema_up(&mutex);
                 cond_wait(&prioSender, &lock);
                 prioSendersWaiting--;
             } else {
                 sendersWaiting++;
-            //    sema_up(&mutex);
+                sema_up(&mutex);
                 cond_wait(&sender, &lock);
                 sendersWaiting--;
             }
@@ -173,12 +173,12 @@ void getSlot(task_t task)
             //Receiver
             if(task.priority == HIGH) {
                 prioReceiversWaiting++;
-             //   sema_up(&mutex);
+                sema_up(&mutex);
                 cond_wait(&prioReceiver, &lock);
                 prioReceiversWaiting--;
             } else {
                 receiversWaiting++;
-            //    sema_up(&mutex);
+                sema_up(&mutex);
                 cond_wait(&receiver, &lock);
                 receiversWaiting--;
             }
@@ -201,6 +201,7 @@ void transferData(task_t task)
 /* task releases the slot */
 void leaveSlot(task_t task) 
 {   
+  //  sema_down(&mutex);
     threadsOnBus--;
 
     sema_up(&semaAllowedThreadsOnBus);
