@@ -22,7 +22,7 @@ int busDirection, threadsOnBus, prioSendersWaiting, sendersWaiting, prioReceiver
 struct lock lock;
 
 struct condition prioSender, sender, prioReceiver, receiver;
-struct semaphore mutex;
+struct semaphore mutex, semaAllowedThreadsOnBus;
 
 //queueSenders
 //queueReceivers
@@ -66,6 +66,8 @@ void init_bus(void){
     cond_init(&prioReceiver);
     cond_init(&receiver);
     sema_init(&mutex, 1);
+    sema_init(&semaAllowedThreadsOnBus, 3);
+    
    // sema_init(busCapacitySemaphore, BUS_CAPACITY);
 
 }
@@ -145,43 +147,47 @@ void oneTask(task_t task) {
 /* task tries to get slot on the bus subsystem */
 void getSlot(task_t task) 
 {   
-    while(1) {
-        //sema_down(&mutex);
-        if(threadsOnBus < 3 && busDirection == task.direction) {
-            
-            threadsOnBus++;
-          //  sema_up(&mutex);
-            return;
-        } else { 
-            if(task.direction == SENDER) {
-                if(task.priority == HIGH) {
-                    prioSendersWaiting++;
-                 //   sema_up(&mutex);
-                    cond_wait(&prioSender, &lock);
-                    prioSendersWaiting--;
-                } else {
-                    sendersWaiting++;
-                //    sema_up(&mutex);
-                    cond_wait(&sender, &lock);
-                    sendersWaiting--;
-                }
+    
+    sema_down(&threadsOnBus);
+    if(threadsOnBus < 3 && busDirection == task.direction) {
+    
+        threadsOnBus++;
+        sema_down(&semaAllowedThreadsOnBus);
+      //  sema_up(&mutex);
+
+        return;
+    } else { 
+        if(task.direction == SENDER) {
+            if(task.priority == HIGH) {
+                prioSendersWaiting++;
+             //   sema_up(&mutex);
+                cond_wait(&prioSender, &lock);
+                prioSendersWaiting--;
             } else {
-                //Receiver
-                if(task.priority == HIGH) {
-                    prioReceiversWaiting++;
-                 //   sema_up(&mutex);
-                    cond_wait(&prioReceiver, &lock);
-                    prioReceiversWaiting--;
-                } else {
-                    receiversWaiting++;
-                //    sema_up(&mutex);
-                    cond_wait(&receiver, &lock);
-                    receiversWaiting--;
-                }
+                sendersWaiting++;
+            //    sema_up(&mutex);
+                cond_wait(&sender, &lock);
+                sendersWaiting--;
+            }
+        } else {
+            //Receiver
+            if(task.priority == HIGH) {
+                prioReceiversWaiting++;
+             //   sema_up(&mutex);
+                cond_wait(&prioReceiver, &lock);
+                prioReceiversWaiting--;
+            } else {
+                receiversWaiting++;
+            //    sema_up(&mutex);
+                cond_wait(&receiver, &lock);
+                receiversWaiting--;
             }
         }
-
     }
+
+    
+
+    
          
 }
 
@@ -195,16 +201,21 @@ void transferData(task_t task)
 /* task releases the slot */
 void leaveSlot(task_t task) 
 {   
-
     threadsOnBus--;
+
+    sema_up(&semaAllowedThreadsOnBus);
+    //TODO decerase theads on bus
     if(task.direction == SENDER) {
+        //Sender
         if(prioSendersWaiting == 0) {
             if(sendersWaiting == 0) {
-                busDirection == RECEIVER;
+                //No sender is waiting to enter bus
+                if(threadsOnBus == 0) {
+                    busDirection == RECEIVER;
+                }
             } else {
                 cond_signal(&sender, &lock);
-            }
-            
+            }      
         } else {
             cond_signal(&prioSender, &lock);
         }
@@ -212,7 +223,10 @@ void leaveSlot(task_t task)
         //Receiver
     }if(prioReceiversWaiting == 0) {
         if(sendersWaiting == 0) {
-            busDirection == SENDER;
+            //No receiver is waiting to enter bus
+            if(threadsOnBus) {
+                busDirection == SENDER;
+            }
         } else {
             cond_signal(&receiver, &lock);
         } 
