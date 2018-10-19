@@ -147,25 +147,26 @@ void oneTask(task_t task) {
 /* task tries to get slot on the bus subsystem */
 void getSlot(task_t task) 
 {   
-    sema_down(&mutex);
+    lock_acquire (&lock);
 
     if(threadsOnBus < 3 && busDirection == task.direction) {
     
         threadsOnBus++;
         sema_down(&semaAllowedThreadsOnBus);
+        lock_release(&lock);
       //  sema_up(&mutex);
-        sema_up(&mutex);
+      //  sema_up(&mutex);
         return;
     } else { 
         if(task.direction == SENDER) {
             if(task.priority == HIGH) {
                 prioSendersWaiting++;
-                sema_up(&mutex);
+              //  sema_up(&mutex);
                 cond_wait(&prioSender, &lock);
                 prioSendersWaiting--;
             } else {
                 sendersWaiting++;
-                sema_up(&mutex);
+              //  sema_up(&mutex);
                 cond_wait(&sender, &lock);
                 sendersWaiting--;
             }
@@ -173,12 +174,12 @@ void getSlot(task_t task)
             //Receiver
             if(task.priority == HIGH) {
                 prioReceiversWaiting++;
-                sema_up(&mutex);
+             //   sema_up(&mutex);
                 cond_wait(&prioReceiver, &lock);
                 prioReceiversWaiting--;
             } else {
                 receiversWaiting++;
-                sema_up(&mutex);
+             //   sema_up(&mutex);
                 cond_wait(&receiver, &lock);
                 receiversWaiting--;
             }
@@ -212,7 +213,7 @@ void leaveSlot(task_t task)
             if(sendersWaiting == 0) {
                 //No sender is waiting to enter bus
                 if(threadsOnBus == 0) {
-                    busDirection == RECEIVER;
+                    busDirection = RECEIVER;
                 }
             } else {
                 cond_signal(&sender, &lock);
@@ -226,7 +227,7 @@ void leaveSlot(task_t task)
         if(sendersWaiting == 0) {
             //No receiver is waiting to enter bus
             if(threadsOnBus) {
-                busDirection == SENDER;
+                busDirection = SENDER;
             }
         } else {
             cond_signal(&receiver, &lock);
