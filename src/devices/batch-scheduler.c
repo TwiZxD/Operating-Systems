@@ -189,7 +189,12 @@ void getSlot(task_t task)
 void transferData(task_t task) 
 {
   int64_t sleep_time = (int64_t)random_ulong();
-    timer_sleep(sleep_time%60);
+    if(task.priority == HIGH) {
+        timer_sleep(sleep_time%60);
+    } else {
+        timer_sleep(sleep_time%30);
+    }
+        
 }
 
 /* task releases the slot */

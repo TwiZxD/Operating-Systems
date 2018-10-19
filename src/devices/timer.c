@@ -92,16 +92,17 @@ void
 timer_sleep (int64_t sleep_ticks) 
 {
   if(ticks > 0) {
-    enum intr_level old_level;
+    //enum old_level;
     ASSERT (intr_get_level () == INTR_ON);
-    old_level = intr_disable ();
+    //old_level = intr_disable ();
 
+    intr_disable ();
     struct thread *t = thread_current();
     t->wakeAtTime = timer_ticks() + sleep_ticks;
     thread_block();
 
-    //intr_enable();
-    intr_set_level(old_level);
+    intr_enable();
+    //intr_set_level(old_level);
   }
 }
 /* Old timer_sleep
