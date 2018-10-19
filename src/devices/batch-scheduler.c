@@ -202,7 +202,7 @@ void transferData(task_t task)
 /* task releases the slot */
 void leaveSlot(task_t task) 
 {   
-  //  sema_down(&mutex);
+    lock_acquire(&lock);
     threadsOnBus--;
 
     sema_up(&semaAllowedThreadsOnBus);
@@ -235,5 +235,6 @@ void leaveSlot(task_t task)
     } else {
         cond_signal(&prioReceiver, &lock);
     }
-
+    
+    lock_release(&lock);
 }
