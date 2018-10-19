@@ -15,8 +15,6 @@
 #define HIGH 1
 
 //Added
-
-
 int busDirection, threadsOnBus, prioSendersWaiting, sendersWaiting, prioReceiversWaiting, receiversWaiting;
 
 struct lock lock;
@@ -148,47 +146,42 @@ void oneTask(task_t task) {
 void getSlot(task_t task) 
 {   
     lock_acquire (&lock);
+    while(1) {
+        if(threadsOnBus < 3 && busDirection == task.direction) {
+        
+            threadsOnBus++;
+            sema_down(&semaAllowedThreadsOnBus);
+            lock_release(&lock);
 
-    if(threadsOnBus < 3 && busDirection == task.direction) {
-    
-        threadsOnBus++;
-        sema_down(&semaAllowedThreadsOnBus);
-        lock_release(&lock);
-      //  sema_up(&mutex);
-      //  sema_up(&mutex);
-        return;
-    } else { 
-        if(task.direction == SENDER) {
-            if(task.priority == HIGH) {
-                prioSendersWaiting++;
-              //  sema_up(&mutex);
-                cond_wait(&prioSender, &lock);
-                prioSendersWaiting--;
+            return;
+        } else { 
+            if(task.direction == SENDER) {
+                if(task.priority == HIGH) {
+                    prioSendersWaiting++;
+                    cond_wait(&prioSender, &lock);
+                    prioSendersWaiting--;
+                } else {
+                    sendersWaiting++;
+                  //  sema_up(&mutex);
+                    cond_wait(&sender, &lock);
+                    sendersWaiting--;
+                }
             } else {
-                sendersWaiting++;
-              //  sema_up(&mutex);
-                cond_wait(&sender, &lock);
-                sendersWaiting--;
-            }
-        } else {
-            //Receiver
-            if(task.priority == HIGH) {
-                prioReceiversWaiting++;
-             //   sema_up(&mutex);
-                cond_wait(&prioReceiver, &lock);
-                prioReceiversWaiting--;
-            } else {
-                receiversWaiting++;
-             //   sema_up(&mutex);
-                cond_wait(&receiver, &lock);
-                receiversWaiting--;
+                //Receiver
+                if(task.priority == HIGH) {
+                    prioReceiversWaiting++;
+                 //   sema_up(&mutex);
+                    cond_wait(&prioReceiver, &lock);
+                    prioReceiversWaiting--;
+                } else {
+                    receiversWaiting++;
+                 //   sema_up(&mutex);
+                    cond_wait(&receiver, &lock);
+                    receiversWaiting--;
+                }
             }
         }
     }
-
-    
-
-    
          
 }
 
@@ -235,6 +228,6 @@ void leaveSlot(task_t task)
     } else {
         cond_signal(&prioReceiver, &lock);
     }
-    
+
     lock_release(&lock);
 }
