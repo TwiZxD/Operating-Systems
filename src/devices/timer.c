@@ -105,7 +105,7 @@ timer_sleep (int64_t sleep_ticks)
     thread_block();
 
     // enable the interrupt
-    intr_enable();
+    // intr_enable();
     intr_set_level(old_level);
   }
 }
