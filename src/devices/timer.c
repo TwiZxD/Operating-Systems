@@ -91,13 +91,9 @@ timer_elapsed (int64_t then)
 void
 timer_sleep (int64_t sleep_ticks) 
 {
-<<<<<<< HEAD
   if(sleep_ticks > 0) {
     enum intr_level old_level;
-=======
-  if(ticks > 0) {
-    //enum old_level;
->>>>>>> d3c6bb1257d12d61ee96c81fee1bedb5023b3cc0
+
     ASSERT (intr_get_level () == INTR_ON);
     //old_level = intr_disable ();
 
@@ -107,11 +103,7 @@ timer_sleep (int64_t sleep_ticks)
     thread_block();
 
     intr_enable();
-<<<<<<< HEAD
     intr_set_level(old_level);
-=======
-    //intr_set_level(old_level);
->>>>>>> d3c6bb1257d12d61ee96c81fee1bedb5023b3cc0
   }
 }
 /* Old timer_sleep
