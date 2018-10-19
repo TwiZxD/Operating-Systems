@@ -93,15 +93,18 @@ timer_sleep (int64_t sleep_ticks)
 {
   if(sleep_ticks > 0) {
     enum intr_level old_level;
-
+    // whether there is an interrupt
     ASSERT (intr_get_level () == INTR_ON);
-    //old_level = intr_disable ();
 
-    intr_disable ();
+    // disable the interrupt
+    old_level = intr_disable ();
+
+    // set the wake up time for the thread and block it
     struct thread *t = thread_current();
     t->wakeAtTime = timer_ticks() + sleep_ticks;
     thread_block();
 
+    // enable the interrupt
     intr_enable();
     intr_set_level(old_level);
   }
