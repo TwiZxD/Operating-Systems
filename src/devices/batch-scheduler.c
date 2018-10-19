@@ -15,8 +15,6 @@
 #define HIGH 1
 
 //Added
-
-
 int busDirection, threadsOnBus, prioSendersWaiting, sendersWaiting, prioReceiversWaiting, receiversWaiting;
 
 struct lock lock;
@@ -147,47 +145,43 @@ void oneTask(task_t task) {
 /* task tries to get slot on the bus subsystem */
 void getSlot(task_t task) 
 {   
-    sema_down(&mutex);
+    lock_acquire (&lock);
+    while(1) {
+        if(threadsOnBus < 3 && busDirection == task.direction) {
+        
+            threadsOnBus++;
+            sema_down(&semaAllowedThreadsOnBus);
+            lock_release(&lock);
 
-    if(threadsOnBus < 3 && busDirection == task.direction) {
-    
-        threadsOnBus++;
-        sema_down(&semaAllowedThreadsOnBus);
-      //  sema_up(&mutex);
-        sema_up(&mutex);
-        return;
-    } else { 
-        if(task.direction == SENDER) {
-            if(task.priority == HIGH) {
-                prioSendersWaiting++;
-                sema_up(&mutex);
-                cond_wait(&prioSender, &lock);
-                prioSendersWaiting--;
+            return;
+        } else { 
+            if(task.direction == SENDER) {
+                if(task.priority == HIGH) {
+                    prioSendersWaiting++;
+                    cond_wait(&prioSender, &lock);
+                    prioSendersWaiting--;
+                } else {
+                    sendersWaiting++;
+                  //  sema_up(&mutex);
+                    cond_wait(&sender, &lock);
+                    sendersWaiting--;
+                }
             } else {
-                sendersWaiting++;
-                sema_up(&mutex);
-                cond_wait(&sender, &lock);
-                sendersWaiting--;
-            }
-        } else {
-            //Receiver
-            if(task.priority == HIGH) {
-                prioReceiversWaiting++;
-                sema_up(&mutex);
-                cond_wait(&prioReceiver, &lock);
-                prioReceiversWaiting--;
-            } else {
-                receiversWaiting++;
-                sema_up(&mutex);
-                cond_wait(&receiver, &lock);
-                receiversWaiting--;
+                //Receiver
+                if(task.priority == HIGH) {
+                    prioReceiversWaiting++;
+                 //   sema_up(&mutex);
+                    cond_wait(&prioReceiver, &lock);
+                    prioReceiversWaiting--;
+                } else {
+                    receiversWaiting++;
+                 //   sema_up(&mutex);
+                    cond_wait(&receiver, &lock);
+                    receiversWaiting--;
+                }
             }
         }
     }
-
-    
-
-    
          
 }
 
@@ -195,13 +189,18 @@ void getSlot(task_t task)
 void transferData(task_t task) 
 {
   int64_t sleep_time = (int64_t)random_ulong();
-    timer_sleep(sleep_time%60);
+    if(task.priority == HIGH) {
+        timer_sleep(sleep_time%60);
+    } else {
+        timer_sleep(sleep_time%30);
+    }
+        
 }
 
 /* task releases the slot */
 void leaveSlot(task_t task) 
 {   
-  //  sema_down(&mutex);
+    lock_acquire(&lock);
     threadsOnBus--;
 
     sema_up(&semaAllowedThreadsOnBus);
@@ -212,7 +211,7 @@ void leaveSlot(task_t task)
             if(sendersWaiting == 0) {
                 //No sender is waiting to enter bus
                 if(threadsOnBus == 0) {
-                    busDirection == RECEIVER;
+                    busDirection = RECEIVER;
                 }
             } else {
                 cond_signal(&sender, &lock);
@@ -226,7 +225,7 @@ void leaveSlot(task_t task)
         if(sendersWaiting == 0) {
             //No receiver is waiting to enter bus
             if(threadsOnBus) {
-                busDirection == SENDER;
+                busDirection = SENDER;
             }
         } else {
             cond_signal(&receiver, &lock);
@@ -235,4 +234,5 @@ void leaveSlot(task_t task)
         cond_signal(&prioReceiver, &lock);
     }
 
+    lock_release(&lock);
 }
