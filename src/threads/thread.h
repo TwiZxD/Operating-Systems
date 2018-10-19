@@ -95,9 +95,6 @@ struct thread
 
     //Recently Added
     int64_t wakeAtTime;
-    int64_t timePutInQueue;
-    int isSender; //1 for sender 0 for receiever
-    int hasPriority; //1 yes, 0 no
 
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
