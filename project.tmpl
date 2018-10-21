@@ -9,9 +9,8 @@
 
 >> Fill in the group number, names and email addresses of your group members.
 
-FirstName LastName <email@domain.example>
-FirstName LastName <email@domain.example>
-FirstName LastName <email@domain.example>
+Liwen Lai <gusliwla@student.gu.se>
+Johan Segerlund <johanse@student.chalmers.se>
 
 ---- PRELIMINARIES ----
 
@@ -31,26 +30,55 @@ FirstName LastName <email@domain.example>
 >> `struct' member, global or static variable, `typedef', or
 >> enumeration.  Identify the purpose of each in 25 words or less.
 
+struct thread
+  {
+    int64_t wakeAtTime;
+  }
+
+we add this into the thread struct to check at what time we should unblock the thread
+
 ---- ALGORITHMS ----
 
 >> A2: Briefly describe what happens in a call to timer_sleep(),
 >> including the effects of the timer interrupt handler.
 
+Firstly, we check whether the time pass into the the function is proper. Then 
+we check whether there is an interrupt. If there is an interrupt, we disable the 
+interrupt. We get the current thread, and calculate the wake up time through add
+the sleep time to the current time. Then we block this sleep thread. Lastly, we
+enable the interrupt.
+
 >> A3: What steps are taken to minimize the amount of time spent in
 >> the timer interrupt handler?
+
+With the help of thread_foreach() function, we check each threads whether we should
+unblock it according to its wakeup time.
 
 ---- SYNCHRONIZATION ----
 
 >> A4: How are race conditions avoided when multiple threads call
 >> timer_sleep() simultaneously?
 
+We disable the interrupt in the timer_sleep().
+
 >> A5: How are race conditions avoided when a timer interrupt occurs
 >> during a call to timer_sleep()?
+
+we disable the interrupt before we try to block the thread, and enable the interrupt
+after we finish the block. Therefore, the timer interrupt will not be able to occur in
+timer_sleep() and there will be no race.
 
 ---- RATIONALE ----
 
 >> A6: Why did you choose this design?  In what ways is it superior to
 >> another design you considered?
+
+We consider to add the wakeup time for each thread, therefore we can check whether
+we should wake up this thread according to whether the time has passed. Then we 
+realize that we have to disable the interrupt in the timer_sleep() to avoid races
+caused by multiple threads calling.
+
+
 
 			    BATCH SCHEDULING
 			    ================
